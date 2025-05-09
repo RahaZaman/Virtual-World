@@ -20,10 +20,23 @@ var FSHADER_SOURCE = `
   varying vec2 v_UV;
   uniform vec4 u_FragColor;
   uniform sampler2D u_Sampler0;
+  uniform int u_whichTexture;
+
   void main() {
-    gl_FragColor = u_FragColor;
-    gl_FragColor = vec4(v_UV, 1.0, 1.0);
-    gl_FragColor = texture2D(u_Sampler0, v_UV);
+
+    if (u_whichTexture == -2) {
+      gl_FragColor = u_FragColor;                    // Use color
+    } 
+    else if (u_whichTexture == -1) {
+      gl_FragColor = vec4(v_UV, 1.0, 1.0);           // Use UV debug color
+    }
+    else if (u_whichTexture == 0) {
+      gl_FragColor = texture2D(u_Sampler0, v_UV);   // Use texture0
+    }
+    else {
+      gl_FragColor = vec4(1,.2,.2,1);               // Error, use Redish
+    }
+
   }`
 
 // Global variables
@@ -116,6 +129,13 @@ function connectVariablesToGLSL() {
     return;
   }
 
+  // Get the storage location of u_whichTexture
+  u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
+  if (!u_whichTexture) {
+    console.log('Failed to get the storage location of u_whichTexture');
+    return;
+  }
+
   // Set an initial value for this matrix to identity 
   var identityM = new Matrix4();
   gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
@@ -138,35 +158,7 @@ let g_yellowAnimation = false;
 
 // Set up actions for HTML UI elements
 function addActionsForHTMLUI() {
-
-  // color slider events
-  // document.getElementById('redSlider').addEventListener('mouseup', function() { g_selectedColor[0] = this.value/100; });
-  // document.getElementById('greenSlider').addEventListener('mouseup', function()  { g_selectedColor[1] = this.value/100; });
-  // document.getElementById('blueSlider').addEventListener('mouseup', function() { g_selectedColor[2] = this.value/100; });
-
-  // // pick a specific color
-  // document.getElementById('colorPicker').addEventListener('input', function (e) {
-  //   let hexColor = e.target.value;
-  //   let rgb = hexToRgb(hexColor); // Convert to [r, g, b]
-  //   g_selectedColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255, 1.0];
-  // });
-
-  // // size slider event
-  // document.getElementById('sizeSlider').addEventListener('mouseup', function() { g_selectedSize = this.value; });
-
-  // // segment slider event for the circle
-  // document.getElementById('segmentSlider').addEventListener('mouseup', function() { g_segment = this.value; });
-
-  // // point and triangle button event
-  // document.getElementById('pointButton').onclick = function() {g_selectedType=POINT};
-  // document.getElementById('triButton').onclick = function() {g_selectedType=TRIANGLE};
-  // document.getElementById('circleButton').onclick = function() {g_selectedType=CIRCLE};
-
-  // // clear button event
-  // document.getElementById('clearButton').onclick = function() {g_shapesList = []; renderAllShapes();};
-
   document.getElementById('magentaSlide').addEventListener('mousemove', function() { g_magentaAngle = this.value; renderAllShapes(); });
-
   document.getElementById('yellowSlide').addEventListener('mousemove', function() { g_yellowAngle = this.value; renderAllShapes(); });
 
   document.getElementById('animationYellowOnButton').onclick = function() {g_yellowAnimation = true };
@@ -328,6 +320,14 @@ function renderAllShapes() {
   // Check the time at the start of this function
   var startTime = performance.now();
 
+  // Pass the projection matrix
+  var projMat = new Matrix4();
+  gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
+
+  // Pass the view matrix
+  var viewMat = new Matrix4();
+  gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
+
   // Pass the matrix to u_ModelMatrix attribute
   var globalRotMat = new Matrix4().rotate(g_globalAngle, 0, 1, 0);
   gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
@@ -336,56 +336,68 @@ function renderAllShapes() {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  // // var len = g_points.length;
-  // var len = g_shapesList.length;
+  // Trying to set up the projection and view matrix
+  // var projMat = new Matrix4();
+  // projMat.setPerspective(60, canvas.width / canvas.height, 0.1, 100);
+  // gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
 
-  // for(var i = 0; i < len; i++) {
-  //   g_shapesList[i].render();
-  // }
-
-  // drawTriangle3D([-1.0, 0.0, 0.0,   -0.5, -1.0, 0.0,  0.0, 0.0, 0.0]);
+  // var viewMat = new Matrix4();
+  // viewMat.setLookAt(0, 0, 3, 0, 0, 0, 0, 1, 0);
+  // gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
 
   // Draw the body cube
   var body = new Cube();
   body.color = [1.0, 0.0, 0.0, 1.0];
-  body.matrix.translate(-.25, -.75, 0.0);
+  body.textureNum = 0; // It looks like this variable is not used
+
+  body.matrix.translate(-0.25, -0.75, 0.0);
   body.matrix.rotate(-5, 1, 0, 0);
-  body.matrix.scale(0.5, .3, .5); 
+  body.matrix.scale(0.5, 0.3, 0.5);
   body.render();
 
-  // Draw a left arm
-  var leftarm = new Cube();
-  leftarm.color = [1, 1, 0, 1];
-  leftarm.matrix.setTranslate(0, -.5, 0.0);
-  leftarm.matrix.rotate(-5, 1, 0, 0);
-  leftarm.matrix.rotate(-g_yellowAngle, 0, 0, 1);
-  // leftarm.matrix.rotate(45*Math.sin(g_seconds), 0, 0, 1);
+  // Yellow arm
+  var yellow = new Cube();
+  yellow.color = [1, 1, 0, 1];
+  yellow.matrix.setTranslate(0, -0.5, 0.0);
+  yellow.matrix.rotate(-5, 1, 0, 0);
+  yellow.matrix.rotate(g_yellowAngle, 0, 0, 1);
 
-  // if (g_yellowAnimation) {
-  //   leftarm.matrix.rotate(45*Math.sin(g_seconds), 0, 0, 1);
-  // } else {
-  //   leftarm.matrix.rotate(-g_yellowAngle, 0, 0, 1);
-  // }
+  var yellowCoordinatesMat = new Matrix4(yellow.matrix);
+  yellow.matrix.scale(0.25, 0.7, 0.5);
+  yellow.matrix.translate(-0.5, 0, 0);
+  yellow.render();
 
-  var yellowCoordinatesMat = new Matrix4(leftarm.matrix);
-  leftarm.matrix.scale(0.25, .7, .5);
-  leftarm.matrix.translate(-.5, 0, 0);
-  leftarm.render();
+  // Magenta box
+  var magenta = new Cube();
+  magenta.color = [1, 0, 1, 1]; 
+  magenta.textureNum = 0;
+  magenta.matrix = yellowCoordinatesMat;
+  magenta.matrix.translate(0, 0.65, 0);
+  magenta.matrix.rotate(g_magentaAngle, 0, 0, 1);
+  magenta.matrix.scale(0.3, 0.3, 0.3);
+  magenta.matrix.translate(-0.5, 0, -0.001);
+  magenta.render();
 
-  // Test box
-  var box = new Cube();
-  box.color = [1, 0, 1, 1];
-  box.matrix = yellowCoordinatesMat;
+  // Ground plane
+  var ground = new Cube();
+  ground.matrix.translate(0, 0, -1);
+  ground.matrix.scale(2,.1,2);
+  ground.render();
+
+  // // Test box
+  // var box = new Cube();
+  // box.color = [1, 0, 1, 1];
+  // box.matrix = yellowCoordinatesMat;
+  // // box.matrix.translate(0, 0.65, 0);
+  // // box.matrix.rotate(45, 1, 0, 0);
+  // // box.matrix.scale(.3, .3, .3);
+  // // box.matrix.translate(-5.0, -0.001);
+
   // box.matrix.translate(0, 0.65, 0);
-  // box.matrix.rotate(45, 1, 0, 0);
+  // box.matrix.rotate(g_magentaAngle, 0, 0, 1);
   // box.matrix.scale(.3, .3, .3);
-  // box.matrix.translate(-5.0, -0.001);
-
-  box.matrix.translate(0, 0.65, 0);
-  box.matrix.rotate(g_magentaAngle, 0, 0, 1);
-  box.matrix.scale(.3, .3, .3);
-  box.matrix.translate(-.5, 0, -0.001);
-  box.render();
+  // box.matrix.translate(-.5, 0, -0.001);
+  // box.render();
 
   // Check the time at the end of the function, and show on web page
   var duration = performance.now() - startTime;
