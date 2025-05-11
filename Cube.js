@@ -4,32 +4,78 @@ class Cube {
         this.type = "cube";
         this.color = [1.0, 1.0, 1.0, 1.0];
         this.matrix = new Matrix4();
-        this.textureNum = -2;
+        this.textureNum = -2; // Default to using color
     }
 
     render() {
-
         var rgba = this.color;
 
+        // Set texture or color mode
         gl.uniform1i(u_whichTexture, this.textureNum);
-
+        
+        // Set base color
         gl.uniform4f(u_FragColor, rgba[0], rgba[1], rgba[2], rgba[3]);
-
+        
+        // Pass the model matrix to shader
         gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
 
-        // Front of cube
-        drawTriangle3DUV([0,0,0,  1,1,0,  1,0,0], [1,0, 0,1, 1,1]);
-        drawTriangle3DUV([0,0,0,  0,1,0,  1,1,0], [0,0, 0,1, 1,1]);
-        // drawTriangle3D([0,0,0,   0,1,0,  1,1,0 ]);
+        // Front face
+        drawTriangle3DUV([0,0,0, 1,1,0, 1,0,0], [0,0, 1,1, 1,0]);
+        drawTriangle3DUV([0,0,0, 0,1,0, 1,1,0], [0,0, 0,1, 1,1]);
 
-        // Pass the color of a point to u_FragColor uniform variable
-        gl.uniform4f(u_FragColor, rgba[0]*.9, rgba[1]*.9, rgba[2]*.9, rgba[3]);
+        // Back face
+        drawTriangle3DUV([0,0,1, 1,1,1, 1,0,1], [1,0, 0,1, 0,0]);
+        drawTriangle3DUV([0,0,1, 0,1,1, 1,1,1], [1,0, 1,1, 0,1]);
 
-        // Top of cube
-        drawTriangle3D([0,1,0,   0,1,1,  1,1,1]);
-        drawTriangle3D([0,1,0,  1,1,1,  1,1,0]);
+        // Top face
+        drawTriangle3DUV([0,1,0, 0,1,1, 1,1,1], [0,0, 0,1, 1,1]);
+        drawTriangle3DUV([0,1,0, 1,1,1, 1,1,0], [0,0, 1,1, 1,0]);
 
-        // drawCube();
+        // Bottom face
+        drawTriangle3DUV([0,0,0, 0,0,1, 1,0,1], [0,0, 0,1, 1,1]);
+        drawTriangle3DUV([0,0,0, 1,0,1, 1,0,0], [0,0, 1,1, 1,0]);
+
+        // Right face
+        drawTriangle3DUV([1,0,0, 1,1,0, 1,1,1], [0,0, 0,1, 1,1]);
+        drawTriangle3DUV([1,0,0, 1,1,1, 1,0,1], [0,0, 1,1, 1,0]);
+
+        // Left face
+        drawTriangle3DUV([0,0,0, 0,1,0, 0,1,1], [1,0, 1,1, 0,1]);
+        drawTriangle3DUV([0,0,0, 0,1,1, 0,0,1], [1,0, 0,1, 0,0]);
+    }
+}
+
+class Floor extends Cube {
+    constructor() {
+        super();
+        this.textureNum = 0; // Default to grass texture
+        this.textureRepeat = 20; // How many times to repeat the texture
+    }
+
+    render() {
+        var rgba = this.color;
+
+        // Set texture or color mode
+        gl.uniform1i(u_whichTexture, this.textureNum);
+        
+        // Set base color
+        gl.uniform4f(u_FragColor, rgba[0], rgba[1], rgba[2], rgba[3]);
+        
+        // Pass the model matrix to shader
+        gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
+
+        const repeat = this.textureRepeat;
+        
+        // Only render the top face with repeated texture
+        // Top face (which will be the floor)
+        drawTriangle3DUV(
+            [0,1,0, 0,1,1, 1,1,1], 
+            [0,0, 0,repeat, repeat,repeat]
+        );
+        drawTriangle3DUV(
+            [0,1,0, 1,1,1, 1,1,0], 
+            [0,0, repeat,repeat, repeat,0]
+        );
     }
 }
 

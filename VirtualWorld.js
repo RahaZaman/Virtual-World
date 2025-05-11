@@ -55,6 +55,10 @@ let u_ProjectionMatrix;
 let u_ViewMatrix;
 let u_GlobalRotateMatrix;
 
+// Add these variables at the top with other global variables
+var g_lastMouseX = -1;
+var g_isMouseDown = false;
+
 function setupWebGL() {
   // Retrieve <canvas> element
   canvas = document.getElementById('webgl');
@@ -185,38 +189,38 @@ for (let i = 0; i < 32; i++) {
 
 // Set up actions for HTML UI elements
 function addActionsForHTMLUI() {
-  document.getElementById('magentaSlide').addEventListener('mousemove', function() { g_magentaAngle = this.value; renderAllShapes(); });
-  document.getElementById('yellowSlide').addEventListener('mousemove', function() { g_yellowAngle = this.value; renderAllShapes(); });
+  // document.getElementById('magentaSlide').addEventListener('mousemove', function() { g_magentaAngle = this.value; renderAllShapes(); });
+  // document.getElementById('yellowSlide').addEventListener('mousemove', function() { g_yellowAngle = this.value; renderAllShapes(); });
 
-  document.getElementById('animationYellowOnButton').onclick = function() {g_yellowAnimation = true };
-  document.getElementById('animationYellowOffButton').onclick = function() {g_yellowAnimation = false};
+  // document.getElementById('animationYellowOnButton').onclick = function() {g_yellowAnimation = true };
+  // document.getElementById('animationYellowOffButton').onclick = function() {g_yellowAnimation = false};
 
   document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderAllShapes(); });
+
+   // Register keyboard and mouse event handlers
+   document.onkeydown = keydown;
+   canvas.onmousedown = function(ev) {
+     mousedown(ev);
+     // Focus the canvas when clicked
+     canvas.focus();
+   };
+   document.onmouseup = mouseup;
+   document.onmousemove = mousemove;
 
 }
 
 function initTextures() {
 
-  // var image = new Image();  // Create the image object
-  // if (!image) {
-  //   console.log('Failed to create the image object');
-  //   return false;
-  // }
-  // // Register the event handler to be called on loading an image
-  // image.onload = function(){ sendTextureToTEXTURE0(image);};
-  // // Tell the browser to load an image
-  // image.src = 'img/sky.jpg';
-
-  // Sky texture
-  let skyImage = new Image();
-  if (!skyImage) {
-    console.log('Failed to create the sky image object');
+  // Grass texture
+  let grassImage = new Image();
+  if (!grassImage) {
+    console.log('Failed to create the grass image object');
     return false;
   }
-  skyImage.onload = function () {
-    sendTextureToTEXTURE0(skyImage);
+  grassImage.onload = function () {
+    sendTextureToTEXTURE0(grassImage);
   };
-  skyImage.src = 'img/sky.jpg';
+  grassImage.src = 'img/grass.jpg';
 
   // Dirt texture
   let dirtImage = new Image();
@@ -234,7 +238,6 @@ function initTextures() {
 }
 
 function sendTextureToTEXTURE0(image) {
-
   var texture = gl.createTexture();   // Create a texture object
   if (!texture) {
     console.log('Failed to create the texture object');
@@ -247,20 +250,22 @@ function sendTextureToTEXTURE0(image) {
   // Bind the texture object to the target
   gl.bindTexture(gl.TEXTURE_2D, texture);
 
-  // Set the texture parameters
+  // Set the texture parameters for better rendering
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  
   // Set the texture image
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
 
   // Set the texture unit 0 to the sampler
   gl.uniform1i(u_Sampler0, 0);
 
-  //gl.drawArrays(gl.TRIANGLE_STRIP, 0, n); // Draw the rectangle
-  console.log('finished loadTexture');
+  console.log('Grass texture loaded successfully');
 }
 
 function sendTextureToTEXTURE1(image) {
-
   var texture = gl.createTexture();   // Create a texture object
   if (!texture) {
     console.log('Failed to create the dirt texture object');
@@ -268,46 +273,87 @@ function sendTextureToTEXTURE1(image) {
   }
 
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1); // Flip the image's y axis
-  // Enable texture unit0
+  // Enable texture unit1
   gl.activeTexture(gl.TEXTURE1);
   // Bind the texture object to the target
   gl.bindTexture(gl.TEXTURE_2D, texture);
 
-  // Set the texture parameters
+  // Set the texture parameters for better rendering
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  
   // Set the texture image
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
 
-  // Set the texture unit 0 to the sampler
+  // Set the texture unit 1 to the sampler
   gl.uniform1i(u_Sampler1, 1);
 
-  console.log('finished loadTexture');
+  console.log('Dirt texture loaded successfully');
 }
 
+// Add this function to handle mouse movement
+function mousemove(ev) {
+  if (g_isMouseDown) {
+    // Only rotate if mouse button is pressed
+    const x = ev.clientX;
+    
+    // If we have a last position, calculate the movement
+    if (g_lastMouseX !== -1) {
+      const deltaX = x - g_lastMouseX;
+      if (deltaX !== 0) {
+        g_camera.rotateWithMouse(deltaX);
+        renderAllShapes();
+      }
+    }
+    
+    // Save current position for next move event
+    g_lastMouseX = x;
+  }
+}
+
+// Add these functions to handle mouse press/release
+function mousedown(ev) {
+  g_isMouseDown = true;
+  g_lastMouseX = ev.clientX;
+}
+
+function mouseup(ev) {
+  g_isMouseDown = false;
+  g_lastMouseX = -1;
+}
+
+// Update the main function to register these handlers
 function main() {
-  
   // Set up canvas and gl variables
   setupWebGL();
-
-  g_camera = new Camera(canvas.width, canvas.height);
 
   // Set up GLSL shader programs and connect GLSL variables
   connectVariablesToGLSL();
 
+  // Initialize camera with correct canvas dimensions
+  g_camera = new Camera(canvas.width, canvas.height);
+  console.log("Canvas dimensions:", canvas.width, "x", canvas.height);
+
   // Set up actions for HTML UI elements
   addActionsForHTMLUI();
+  
+  // Make canvas focusable for keyboard events
+  canvas.tabIndex = 0;
+  // Focus canvas by default
+  canvas.focus();
 
-  // Register function (event handler) to be called on a mouse press
-  document.onkeydown = keydown;
-
+  // Initialize textures
   initTextures();
 
   // Specify the color for clearing <canvas>
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-  // Render
-  // gl.clear(gl.COLOR_BUFFER_BIT);
-  // renderAllShapes();
+  // Initial render
+  renderAllShapes();
+  
+  // Start the animation loop
   requestAnimationFrame(tick);
 }
 
@@ -332,44 +378,6 @@ function tick() {
 
 var g_shapesList = [];
 
-// function click(ev) {
-
-//   // Extract the event click and return it in WebGL coordinates
-//   let [x, y] = convertCoordinatesEventToGL(ev);
-
-//   // Create and store the new Point
-//   let point;
-
-//   if (g_selectedType == POINT) {
-//     point = new Point();
-//   } else if (g_selectedType == TRIANGLE) {
-//     point = new Triangle();
-//   } else {
-//     point = new Circle();
-//   }
-
-//   point.position = [x,y];
-//   point.color = g_selectedColor.slice();
-//   point.size = g_selectedSize;
-//   point.segments = g_segment;
-//   g_shapesList.push(point);
-
-//   // Draw every shape that is supposed to be in the canvas
-//   renderAllShapes();
-// }
-
-// // Extract the event click and return it in WebGL coordinates
-// function convertCoordinatesEventToGL(ev) {
-//   var x = ev.clientX; // x coordinate of a mouse pointer
-//   var y = ev.clientY; // y coordinate of a mouse pointer
-//   var rect = ev.target.getBoundingClientRect();
-
-//   x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
-//   y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
-
-//   return([x,y]);
-// }
-
 // Update the angles of everything if currently animated
 function updateAnimationAngles() {
   if (g_yellowAnimation) {
@@ -379,37 +387,47 @@ function updateAnimationAngles() {
 
 // performs the keyboard input
 function keydown(ev) {
-
+  console.log(`Key pressed: ${ev.key}, KeyCode: ${ev.keyCode}`);
+  
   /* Camera Movement */
-
-  if (ev.key === 'w' || ev.key === 'W') {
-    g_camera.moveForward();
+  if (ev.key === 'w' || ev.key === 'W' || ev.keyCode === 87) {
+    console.log("Moving forward");
+    g_camera.moveForward(0.5);  // Adjust speed as needed
   } 
-  
-  else if (ev.key === 's' || ev.key === 'S') {
-    g_camera.moveBackward();
+  else if (ev.key === 's' || ev.key === 'S' || ev.keyCode === 83) {
+    console.log("Moving backward");
+    g_camera.moveBackward(0.5);  // Adjust speed as needed
   } 
-  
-  else if (ev.key === 'a' || ev.key === 'A') {
-    g_camera.moveLeft();
+  else if (ev.key === 'a' || ev.key === 'A' || ev.keyCode === 65) {
+    console.log("Moving left");
+    g_camera.moveLeft(0.5);  // Adjust speed as needed
   } 
-  
-  else if (ev.key === 'd' || ev.key === 'D') {
-    g_camera.moveRight();
+  else if (ev.key === 'd' || ev.key === 'D' || ev.keyCode === 68) {
+    console.log("Moving right");
+    g_camera.moveRight(0.5);  // Adjust speed as needed
   } 
   
   /* Rotating Cameras */
-
-  else if (ev.key === 'q' || ev.key === 'Q') {
-    g_camera.panLeft();
+  else if (ev.key === 'q' || ev.key === 'Q' || ev.keyCode === 81) {
+    console.log("Panning left");
+    g_camera.panLeft(5);  // Adjust angle as needed
   } 
-  
-  else if (ev.key === 'e' || ev.key === 'E') {
-    g_camera.panRight();
+  else if (ev.key === 'e' || ev.key === 'E' || ev.keyCode === 69) {
+    console.log("Panning right");
+    g_camera.panRight(5);  // Adjust angle as needed
   }
   
+  // Log camera position after movement
+  console.log("Camera eye:", g_camera.eye.toString());
+  console.log("Camera at:", g_camera.at.toString());
+  
+  // Always re-render after a key press
   renderAllShapes();
-  console.log(`Key pressed: ${ev.key}, KeyCode: ${ev.keyCode}`);
+  
+  // Prevent default behavior for these keys (like scrolling)
+  if (['w', 'W', 'a', 'A', 's', 'S', 'd', 'D', 'q', 'Q', 'e', 'E'].includes(ev.key)) {
+    ev.preventDefault();
+  }
 }
 
 // variables that control where the camera is / angle
@@ -434,94 +452,78 @@ function drawMap() {
 
 // Draw every shape that is supposed to be in the canvas
 function renderAllShapes() {
-
   // Check the time at the start of this function
   var startTime = performance.now();
 
-  // can call setPerspective and setLookAt commands in console with Matrix4()
-
-  // // Pass the projection matrix
-  // var projMat = new Matrix4();
-  // projMat.setPerspective(50, 1*canvas.width/canvas.height, 1, 100);
-  // gl.uniformMatrix4fv(u_ProjectionMatrix, false, projMat.elements);
-
-  // // Pass the view matrix
-  // var viewMat = new Matrix4();
-  // // viewMat.setLookAt(0, 0, 3,  0,0,-100,   0,1,0); // (eye, at, up)
-  // viewMat.setLookAt(g_eye[0], g_eye[1], g_eye[2],  g_at[0],g_at[1],g_at[2],   g_up[0],g_up[1],g_up[2]); // (eye, at, up)
-  // gl.uniformMatrix4fv(u_ViewMatrix, false, viewMat.elements);
-
   // Clear <canvas>
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.clear(gl.COLOR_BUFFER_BIT);
 
+  // Update and pass camera matrices
+  g_camera.updateViewMatrix();
   g_camera.updateProjectionMatrix(); // in case canvas resizes
-  gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
+  
+  // Pass matrices to shaders
   gl.uniformMatrix4fv(u_ViewMatrix, false, g_camera.viewMatrix.elements);
+  gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
 
-  // Pass the matrix to u_ModelMatrix attribute
+  // Pass the global rotation matrix
   var globalRotMat = new Matrix4().rotate(g_globalAngle, 0, 1, 0);
   gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
 
   // Draw the floor
-  var floor = new Cube();
-  floor.color = [0.0, 0.6, 0.0, 1.0];
+  var floor = new Floor();
+  floor.textureNum = 0; // Use grass texture
+  floor.textureRepeat = 40; // Repeat texture many times for better appearance
   floor.matrix.translate(0, -0.75, 0.0);
-  floor.matrix.scale(10, 0, 10);
+  floor.matrix.scale(100, 0.1, 100);  // Make it 100x larger in x and z dimensions
   floor.matrix.translate(-0.5, 0, -0.5);
   floor.render();
 
   // Draw the sky
   var sky = new Cube();
   sky.color = [0.6, 0.8, 1.0, 1.0];
-  sky.matrix.scale(1000,1000,1000);
-  sky.matrix.translate(-.5, -.5, -0.5);
+  sky.matrix.scale(1000, 1000, 1000);
+  sky.matrix.translate(-0.5, -0.5, -0.5);
   sky.render();
 
+  // Draw the world map
   drawMap();
 
-  // Draw the body cube
-  var body = new Cube();
-  body.color = [1.0, 0.0, 0.0, 1.0];
-  body.textureNum = 0; // It looks like this variable is not used
+  // // Draw the body cube
+  // var body = new Cube();
+  // body.color = [1.0, 0.0, 0.0, 1.0];
+  // // body.textureNum = 0;
+  // body.matrix.translate(-0.25, -0.75, 0.0);
+  // body.matrix.rotate(-5, 1, 0, 0);
+  // body.matrix.scale(0.5, 0.3, 0.5);
+  // body.render();
 
-  body.matrix.translate(-0.25, -0.75, 0.0);
-  body.matrix.rotate(-5, 1, 0, 0);
-  body.matrix.scale(0.5, 0.3, 0.5);
-  body.render();
+  // // Yellow arm
+  // var yellow = new Cube();
+  // yellow.color = [1, 1, 0, 1];
+  // yellow.matrix.setTranslate(0, -0.5, 0.0);
+  // yellow.matrix.rotate(-5, 1, 0, 0);
+  // yellow.matrix.rotate(g_yellowAngle, 0, 0, 1);
 
-  // Yellow arm
-  var yellow = new Cube();
-  yellow.color = [1, 1, 0, 1];
-  yellow.matrix.setTranslate(0, -0.5, 0.0);
-  yellow.matrix.rotate(-5, 1, 0, 0);
-  yellow.matrix.rotate(g_yellowAngle, 0, 0, 1);
+  // var yellowCoordinatesMat = new Matrix4(yellow.matrix);
+  // yellow.matrix.scale(0.25, 0.7, 0.5);
+  // yellow.matrix.translate(-0.5, 0, 0);
+  // yellow.render();
 
-  var yellowCoordinatesMat = new Matrix4(yellow.matrix);
-  yellow.matrix.scale(0.25, 0.7, 0.5);
-  yellow.matrix.translate(-0.5, 0, 0);
-  yellow.render();
-
-  // Magenta box
-  var magenta = new Cube();
-  magenta.color = [1, 0, 1, 1]; 
-  magenta.textureNum = 0;
-  magenta.matrix = yellowCoordinatesMat;
-  magenta.matrix.translate(0, 0.65, 0);
-  magenta.matrix.rotate(g_magentaAngle, 0, 0, 1);
-  magenta.matrix.scale(0.3, 0.3, 0.3);
-  magenta.matrix.translate(-0.5, 0, -0.001);
-  magenta.render();
-
-  // Ground plane
-  var ground = new Cube();
-  ground.matrix.translate(0, 0, -1);
-  ground.matrix.scale(2,.1,2);
-  ground.render();
+  // // Magenta box
+  // var magenta = new Cube();
+  // magenta.color = [1, 0, 1, 1]; 
+  // // magenta.textureNum = 0;
+  // magenta.matrix = yellowCoordinatesMat;
+  // magenta.matrix.translate(0, 0.65, 0);
+  // magenta.matrix.rotate(g_magentaAngle, 0, 0, 1);
+  // magenta.matrix.scale(0.3, 0.3, 0.3);
+  // magenta.matrix.translate(-0.5, 0, -0.001);
+  // magenta.render();
 
   // Check the time at the end of the function, and show on web page
   var duration = performance.now() - startTime;
-  sendTextToHTML(" ms: " + Math.floor(duration) + " fps: " + (Math.floor(1000/duration))/10, "numdot");
+  sendTextToHTML(" ms: " + Math.floor(duration) + " fps: " + Math.floor(1000/duration), "numdot");
 }
 
 // Set the text of an HTML element

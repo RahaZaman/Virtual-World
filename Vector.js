@@ -1,18 +1,17 @@
-// cuon-matrix.js (c) 2012 kanda and matsuda
-/**
- * This is a class treating 4x4 matrix.
- * This class contains the function that is equivalent to OpenGL matrix stack.
- * The matrix after conversion is calculated by multiplying a conversion matrix from the right.
- * The matrix is replaced by the calculated result.
- */
-
 class Vector3 {
     constructor(opt_src) {
         var v = new Float32Array(3);
         if (opt_src && typeof opt_src === 'object') {
-          v[0] = opt_src[0];
-          v[1] = opt_src[1];
-          v[2] = opt_src[2];
+            // Handle both array and Vector3 inputs
+            if (opt_src instanceof Vector3) {
+                v[0] = opt_src.elements[0];
+                v[1] = opt_src.elements[1];
+                v[2] = opt_src.elements[2];
+            } else {
+                v[0] = opt_src[0] || 0;
+                v[1] = opt_src[1] || 0;
+                v[2] = opt_src[2] || 0;
+            }
         }
         this.elements = v;
     }
@@ -183,6 +182,30 @@ class Vector3 {
         // Don't delete the return statement.
         return this;
     };
+
+    toString() {
+        return `Vector3(${this.elements[0]}, ${this.elements[1]}, ${this.elements[2]})`;
+    }
+
+    // multiplyScalar(scalar) {
+    //   let result = new Vector3();
+    //   result.elements[0] = this.elements[0] * scalar;
+    //   result.elements[1] = this.elements[1] * scalar;
+    //   result.elements[2] = this.elements[2] * scalar;
+    //   return result;
+    // }
+
+    // cross(v) {
+    //   let result = new Vector3();
+    //   let e1 = this.elements;
+    //   let e2 = v.elements;
+      
+    //   result.elements[0] = e1[1] * e2[2] - e1[2] * e2[1];
+    //   result.elements[1] = e1[2] * e2[0] - e1[0] * e2[2];
+    //   result.elements[2] = e1[0] * e2[1] - e1[1] * e2[0];
+      
+    //   return result;
+    // }
 }
 
 class Vector4 {
