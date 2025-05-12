@@ -40,13 +40,16 @@ class Camera {
     
     // Normalize and scale
     forward.normalize();
-    forward.mul(speed);
+    
+    // Manually scale the vector instead of using mul
+    let scaledX = forward.elements[0] * speed;
+    let scaledZ = forward.elements[2] * speed;
     
     // Move both eye and at points
-    this.eye.elements[0] += forward.elements[0];
-    this.eye.elements[2] += forward.elements[2];
-    this.at.elements[0] += forward.elements[0];
-    this.at.elements[2] += forward.elements[2];
+    this.eye.elements[0] += scaledX;
+    this.eye.elements[2] += scaledZ;
+    this.at.elements[0] += scaledX;
+    this.at.elements[2] += scaledZ;
     
     console.log("After moveForward - Eye:", this.eye.elements, "At:", this.at.elements);
     this.updateViewMatrix();
@@ -64,21 +67,30 @@ class Camera {
       this.at.elements[2] - this.eye.elements[2]
     ]);
     
-    // Calculate left direction (up × forward)
-    // Manual cross product calculation
+    // Calculate left direction (up × forward) manually instead of using Vector3.cross
     let left = new Vector3([0, 0, 0]);
-    left.elements[0] = this.up.elements[1] * forward.elements[2] - this.up.elements[2] * forward.elements[1];
-    left.elements[1] = this.up.elements[2] * forward.elements[0] - this.up.elements[0] * forward.elements[2];
-    left.elements[2] = this.up.elements[0] * forward.elements[1] - this.up.elements[1] * forward.elements[0];
     
+    // Manual cross product calculation: up × forward
+    // cross product formula: (a2*b3 - a3*b2, a3*b1 - a1*b3, a1*b2 - a2*b1)
+    let upE = this.up.elements;
+    let forwardE = forward.elements;
+    
+    left.elements[0] = upE[1] * forwardE[2] - upE[2] * forwardE[1];
+    left.elements[1] = upE[2] * forwardE[0] - upE[0] * forwardE[2];
+    left.elements[2] = upE[0] * forwardE[1] - upE[1] * forwardE[0];
+    
+    // Normalize
     left.normalize();
-    left.mul(speed);
+    
+    // Manually scale the vector
+    let scaledX = left.elements[0] * speed;
+    let scaledZ = left.elements[2] * speed;
     
     // Move both eye and at points
-    this.eye.elements[0] += left.elements[0];
-    this.eye.elements[2] += left.elements[2];
-    this.at.elements[0] += left.elements[0];
-    this.at.elements[2] += left.elements[2];
+    this.eye.elements[0] += scaledX;
+    this.eye.elements[2] += scaledZ;
+    this.at.elements[0] += scaledX;
+    this.at.elements[2] += scaledZ;
     
     console.log("After moveLeft - Eye:", this.eye.elements, "At:", this.at.elements);
     this.updateViewMatrix();

@@ -186,26 +186,6 @@ class Vector3 {
     toString() {
         return `Vector3(${this.elements[0]}, ${this.elements[1]}, ${this.elements[2]})`;
     }
-
-    // multiplyScalar(scalar) {
-    //   let result = new Vector3();
-    //   result.elements[0] = this.elements[0] * scalar;
-    //   result.elements[1] = this.elements[1] * scalar;
-    //   result.elements[2] = this.elements[2] * scalar;
-    //   return result;
-    // }
-
-    // cross(v) {
-    //   let result = new Vector3();
-    //   let e1 = this.elements;
-    //   let e2 = v.elements;
-      
-    //   result.elements[0] = e1[1] * e2[2] - e1[2] * e2[1];
-    //   result.elements[1] = e1[2] * e2[0] - e1[0] * e2[2];
-    //   result.elements[2] = e1[0] * e2[1] - e1[1] * e2[0];
-      
-    //   return result;
-    // }
 }
 
 class Vector4 {

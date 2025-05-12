@@ -173,29 +173,61 @@ let g_yellowAnimation = false;
 // map or world creation
 var g_map = [];
 
+// create a 32x32 map with more varied terrain
 for (let i = 0; i < 32; i++) {
   g_map[i] = [];
   for (let j = 0; j < 32; j++) {
-    // Generate some basic wall pattern
+    // Generate a more interesting map pattern
     if (i === 0 || i === 31 || j === 0 || j === 31) {
-      g_map[i][j] = 3; // Border wall
-    } else if ((i % 5 === 0 && j % 5 === 0)) {
-      g_map[i][j] = 2; // Decorative internal blocks
-    } else {
+      // Border walls with varying heights
+      g_map[i][j] = 3 + Math.floor(Math.random() * 2); // Heights 3-4
+    } 
+    // Create some internal structures
+    else if (i === 10 && j >= 10 && j <= 20) {
+      g_map[i][j] = 5; // Tall wall/building
+    }
+    else if (j === 15 && i >= 5 && i <= 15) {
+      g_map[i][j] = 4; // Medium wall/building
+    }
+    // Create a maze-like pattern in one quadrant
+    else if (i > 20 && j > 20 && (i % 3 === 0 || j % 3 === 0)) {
+      g_map[i][j] = 2 + (i + j) % 3; // Heights 2-4
+    }
+    // Add some decorative columns/pillars
+    else if ((i % 8 === 0 && j % 8 === 0)) {
+      g_map[i][j] = 6; // Tall pillars
+    }
+    // Add some small scattered blocks
+    else if ((i % 7 === 0 && j % 5 === 0)) {
+      g_map[i][j] = 1; // Small blocks
+    }
+    else {
       g_map[i][j] = 0; // Empty space
     }
   }
 }
 
+// Create a hill/mountain in one area of the map
+for (let i = 5; i < 9; i++) {
+  for (let j = 22; j < 28; j++) {
+    const distFromCenter = Math.sqrt(Math.pow(i-7, 2) + Math.pow(j-25, 2));
+    const height = Math.max(0, Math.floor(5 - distFromCenter));
+    g_map[i][j] = height;
+  }
+}
+
+// Create a pyramid
+for (let i = 22; i < 28; i++) {
+  for (let j = 5; j < 11; j++) {
+    const layerHeight = Math.min(28-i, i-21, 11-j, j-4);
+    g_map[i][j] = layerHeight;
+  }
+}
+
 // Set up actions for HTML UI elements
 function addActionsForHTMLUI() {
-  // document.getElementById('magentaSlide').addEventListener('mousemove', function() { g_magentaAngle = this.value; renderAllShapes(); });
-  // document.getElementById('yellowSlide').addEventListener('mousemove', function() { g_yellowAngle = this.value; renderAllShapes(); });
 
-  // document.getElementById('animationYellowOnButton').onclick = function() {g_yellowAnimation = true };
-  // document.getElementById('animationYellowOffButton').onclick = function() {g_yellowAnimation = false};
-
-  document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderAllShapes(); });
+  // document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderAllShapes(); });
 
    // Register keyboard and mouse event handlers
    document.onkeydown = keydown;
@@ -376,8 +408,6 @@ function tick() {
   requestAnimationFrame(tick);
 }
 
-var g_shapesList = [];
-
 // Update the angles of everything if currently animated
 function updateAnimationAngles() {
   if (g_yellowAnimation) {
@@ -429,11 +459,6 @@ function keydown(ev) {
     ev.preventDefault();
   }
 }
-
-// variables that control where the camera is / angle
-var g_eye = [0,0,3];
-var g_at = [0,0, -100];
-var g_up = [0, 1, 0]; 
 
 function drawMap() {
   for (let x = 0; x < 32; x++) {
@@ -488,38 +513,6 @@ function renderAllShapes() {
 
   // Draw the world map
   drawMap();
-
-  // // Draw the body cube
-  // var body = new Cube();
-  // body.color = [1.0, 0.0, 0.0, 1.0];
-  // // body.textureNum = 0;
-  // body.matrix.translate(-0.25, -0.75, 0.0);
-  // body.matrix.rotate(-5, 1, 0, 0);
-  // body.matrix.scale(0.5, 0.3, 0.5);
-  // body.render();
-
-  // // Yellow arm
-  // var yellow = new Cube();
-  // yellow.color = [1, 1, 0, 1];
-  // yellow.matrix.setTranslate(0, -0.5, 0.0);
-  // yellow.matrix.rotate(-5, 1, 0, 0);
-  // yellow.matrix.rotate(g_yellowAngle, 0, 0, 1);
-
-  // var yellowCoordinatesMat = new Matrix4(yellow.matrix);
-  // yellow.matrix.scale(0.25, 0.7, 0.5);
-  // yellow.matrix.translate(-0.5, 0, 0);
-  // yellow.render();
-
-  // // Magenta box
-  // var magenta = new Cube();
-  // magenta.color = [1, 0, 1, 1]; 
-  // // magenta.textureNum = 0;
-  // magenta.matrix = yellowCoordinatesMat;
-  // magenta.matrix.translate(0, 0.65, 0);
-  // magenta.matrix.rotate(g_magentaAngle, 0, 0, 1);
-  // magenta.matrix.scale(0.3, 0.3, 0.3);
-  // magenta.matrix.translate(-0.5, 0, -0.001);
-  // magenta.render();
 
   // Check the time at the end of the function, and show on web page
   var duration = performance.now() - startTime;

@@ -58,8 +58,8 @@ class Floor extends Cube {
         // Set texture or color mode
         gl.uniform1i(u_whichTexture, this.textureNum);
         
-        // Set base color
-        gl.uniform4f(u_FragColor, rgba[0], rgba[1], rgba[2], rgba[3]);
+        // Set base color - set to white to show true texture colors
+        gl.uniform4f(u_FragColor, 1.0, 1.0, 1.0, 1.0);
         
         // Pass the model matrix to shader
         gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
@@ -68,10 +68,14 @@ class Floor extends Cube {
         
         // Only render the top face with repeated texture
         // Top face (which will be the floor)
+        
+        // First triangle
         drawTriangle3DUV(
             [0,1,0, 0,1,1, 1,1,1], 
             [0,0, 0,repeat, repeat,repeat]
         );
+        
+        // Second triangle
         drawTriangle3DUV(
             [0,1,0, 1,1,1, 1,1,0], 
             [0,0, repeat,repeat, repeat,0]
