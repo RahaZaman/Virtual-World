@@ -227,8 +227,6 @@ for (let i = 22; i < 28; i++) {
 // Set up actions for HTML UI elements
 function addActionsForHTMLUI() {
 
-  // document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderAllShapes(); });
-
    // Register keyboard and mouse event handlers
    document.onkeydown = keydown;
    canvas.onmousedown = function(ev) {
